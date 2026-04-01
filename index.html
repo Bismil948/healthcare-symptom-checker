@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCheck — AI Symptom Checker</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:       #f5f2ec;
+      --surface:  #ffffff;
+      --ink:      #1a1a2e;
+      --ink-soft: #6b6b7b;
+      --teal:     #1a7f7f;
+      --teal-lt:  #e8f5f5;
+      --amber:    #d97706;
+      --amber-lt: #fef3c7;
+      --red:      #c0392b;
+      --red-lt:   #fdecea;
+      --green:    #1a6b3c;
+      --green-lt: #e6f4ed;
+      --border:   #ddd8ce;
+      --radius:   14px;
+      --shadow:   0 4px 24px rgba(26,31,60,.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--ink);
+      color: #fff;
+      padding: 28px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: var(--teal);
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-size: 22px;
+    }
+    header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.7rem;
+      letter-spacing: -.5px;
+    }
+    header span { color: var(--teal); }
+    .badge {
+      margin-left: auto;
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      font-size: .72rem;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 99px;
+      letter-spacing: .4px;
+    }
+
+    /* ── Main Layout ── */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ── Disclaimer Banner ── */
+    .disclaimer-banner {
+      background: var(--amber-lt);
+      border: 1.5px solid #fcd34d;
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: .88rem;
+      color: #92400e;
+      line-height: 1.55;
+    }
+    .disclaimer-banner .icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Input Card ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 30px;
+    }
+    .card-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.3rem;
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      color: var(--ink-soft);
+      font-size: .9rem;
+      margin-bottom: 20px;
+    }
+    textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      color: var(--ink);
+      resize: vertical;
+      min-height: 120px;
+      background: var(--bg);
+      transition: border-color .2s;
+      outline: none;
+    }
+    textarea:focus { border-color: var(--teal); }
+    textarea::placeholder { color: #aaa; }
+
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin: 14px 0;
+    }
+    .chip {
+      background: var(--teal-lt);
+      color: var(--teal);
+      border: 1.5px solid #b2dfdf;
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: .82rem;
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .chip:hover { background: var(--teal); color: #fff; }
+
+    .chip-label { font-size: .8rem; color: var(--ink-soft); margin-bottom: 6px; }
+
+    .btn-check {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 18px;
+      transition: background .2s, transform .1s;
+    }
+    .btn-check:hover { background: #155e5e; }
+    .btn-check:active { transform: scale(.98); }
+    .btn-check:disabled { background: #a0c8c8; cursor: not-allowed; }
+
+    /* ── Loader ── */
+    .loader {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      color: var(--teal);
+      font-size: .95rem;
+      margin-top: 16px;
+    }
+    .loader.show { display: flex; }
+    .spinner {
+      width: 22px; height: 22px;
+      border: 2.5px solid var(--teal-lt);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results ── */
+    #results { display: none; flex-direction: column; gap: 20px; }
+    #results.show { display: flex; }
+
+    .urgency-bar {
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .urgency-low      { background: var(--green-lt); color: var(--green); border: 1.5px solid #86efac; }
+    .urgency-medium   { background: var(--amber-lt); color: var(--amber); border: 1.5px solid #fcd34d; }
+    .urgency-high     { background: #fff0e6; color: #c05621; border: 1.5px solid #fdba74; }
+    .urgency-emergency{ background: var(--red-lt);   color: var(--red);   border: 1.5px solid #fca5a5; }
+
+    .section-label {
+      font-size: .78rem;
+      font-weight: 500;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-bottom: 14px;
+    }
+
+    /* Conditions list */
+    .condition-list { display: flex; flex-direction: column; gap: 12px; }
+    .condition-item {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: box-shadow .2s;
+    }
+    .condition-item:hover { box-shadow: var(--shadow); }
+    .likelihood-badge {
+      font-size: .72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 99px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .lh-common    { background: var(--red-lt);   color: var(--red); }
+    .lh-possible  { background: var(--amber-lt); color: var(--amber); }
+    .lh-less      { background: var(--green-lt); color: var(--green); }
+    .condition-name { font-weight: 500; margin-bottom: 4px; }
+    .condition-desc { font-size: .88rem; color: var(--ink-soft); line-height: 1.5; }
+
+    /* Next steps */
+    .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .steps-list li {
+      display: flex; gap: 12px; align-items: flex-start;
+      font-size: .93rem; line-height: 1.5;
+    }
+    .step-num {
+      width: 24px; height: 24px;
+      background: var(--teal);
+      color: #fff;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: .78rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* Red flags */
+    .redflags-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .redflags-list li {
+      display: flex; gap: 10px; align-items: center;
+      font-size: .9rem; color: var(--red);
+    }
+    .redflags-list li::before { content: "⚠️"; font-size: 1rem; }
+
+    /* Final disclaimer */
+    .final-disclaimer {
+      background: #f8f8f8;
+      border-left: 4px solid var(--teal);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 16px;
+      font-size: .85rem;
+      color: var(--ink-soft);
+      line-height: 1.6;
+    }
+
+    /* Error */
+    .error-box {
+      background: var(--red-lt);
+      border: 1.5px solid #fca5a5;
+      color: var(--red);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: none;
+    }
+    .error-box.show { display: block; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      header { padding: 20px; }
+      .card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">🩺</div>
+  <h1>Medi<span>Check</span></h1>
+  <div class="badge">Educational Only</div>
+</header>
+
+<main>
+
+  <!-- Disclaimer -->
+  <div class="disclaimer-banner">
+    <span class="icon">⚠️</span>
+    <div>
+      <strong>For Educational Purposes Only.</strong> This tool uses AI to suggest possible conditions based on symptoms. It is <em>not</em> a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.
+    </div>
+  </div>
+
+  <!-- Input Card -->
+  <div class="card">
+    <div class="card-title">Describe Your Symptoms</div>
+    <div class="card-sub">Be as specific as possible — include location, duration, and severity.</div>
+
+    <textarea id="symptomsInput" placeholder="e.g. I have had a headache on the right side for 2 days, along with mild fever of 100°F, and a stiff neck. The headache is worse in bright light."></textarea>
+
+    <div class="chip-label">Quick examples — click to add:</div>
+    <div class="chips">
+      <span class="chip" onclick="addChip('headache and fever for 2 days')">Headache + Fever</span>
+      <span class="chip" onclick="addChip('sore throat, difficulty swallowing, mild fever')">Sore Throat</span>
+      <span class="chip" onclick="addChip('chest pain, shortness of breath, dizziness')">Chest Pain</span>
+      <span class="chip" onclick="addChip('stomach pain, nausea, vomiting after eating')">Stomach Issues</span>
+      <span class="chip" onclick="addChip('rash on arms, itching, mild swelling')">Skin Rash</span>
+      <span class="chip" onclick="addChip('joint pain in knees, swelling, morning stiffness')">Joint Pain</span>
+    </div>
+
+    <button class="btn-check" id="checkBtn" onclick="checkSymptoms()">
+      <span>🔍</span> Analyze Symptoms
+    </button>
+
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      Analyzing with AI… this may take a few seconds
+    </div>
+  </div>
+
+  <!-- Error Box -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Urgency Level -->
+    <div id="urgencyBar" class="urgency-bar"></div>
+
+    <!-- Possible Conditions -->
+    <div class="card">
+      <div class="section-label">Possible Conditions</div>
+      <div class="condition-list" id="conditionList"></div>
+    </div>
+
+    <!-- Recommended Next Steps -->
+    <div class="card">
+      <div class="section-label">Recommended Next Steps</div>
+      <ul class="steps-list" id="stepsList"></ul>
+    </div>
+
+    <!-- Red Flags -->
+    <div class="card" id="redFlagCard">
+      <div class="section-label">🚨 Red Flag Symptoms — Seek Emergency Care If:</div>
+      <ul class="redflags-list" id="redFlagsList"></ul>
+    </div>
+
+    <!-- Final Disclaimer -->
+    <div class="final-disclaimer" id="disclaimerText"></div>
+
+  </div>
+
+</main>
+
+<script>
+  // ─── Config ───────────────────────────────────────────────────────────────
+  // If you run the backend on a different port, change this URL
+  const API_URL = "http://localhost:5000/api/check-symptoms";
+
+  // ─── Quick example chips ───────────────────────────────────────────────────
+  function addChip(text) {
+    const ta = document.getElementById("symptomsInput");
+    ta.value = text;
+    ta.focus();
+  }
+
+  // ─── Main function: send symptoms to backend ───────────────────────────────
+  async function checkSymptoms() {
+    const symptoms = document.getElementById("symptomsInput").value.trim();
+
+    // Basic validation
+    if (!symptoms || symptoms.length < 5) {
+      showError("Please describe your symptoms before analyzing.");
+      return;
+    }
+
+    // Show loading state
+    setLoading(true);
+    hideError();
+    hideResults();
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symptoms }),
+      });
+
+      const json = await response.json();
+
+      if (!json.success) {
+        showError("Error from server: " + (json.error || "Unknown error"));
+        return;
+      }
+
+      renderResults(json.data);
+
+    } catch (err) {
+      showError(
+        "Could not connect to the backend. Make sure your Flask server is running on http://localhost:5000\n\nError: " + err.message
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ─── Render results into the DOM ───────────────────────────────────────────
+  function renderResults(data) {
+    // Urgency bar
+    const urgencyBar = document.getElementById("urgencyBar");
+    const level = (data.urgency_level || "Unknown").toLowerCase();
+    const urgencyMap = {
+      low:       { cls: "urgency-low",       icon: "✅", text: "Low Urgency — Monitor symptoms and rest." },
+      medium:    { cls: "urgency-medium",     icon: "⚡", text: "Medium Urgency — Consider seeing a doctor soon." },
+      high:      { cls: "urgency-high",       icon: "🔶", text: "High Urgency — See a doctor today." },
+      emergency: { cls: "urgency-emergency",  icon: "🚨", text: "EMERGENCY — Seek immediate medical attention!" },
+    };
+    const u = urgencyMap[level] || { cls: "urgency-medium", icon: "ℹ️", text: "Urgency: " + data.urgency_level };
+    urgencyBar.className = "urgency-bar " + u.cls;
+    urgencyBar.innerHTML = `<span>${u.icon}</span> ${u.text}`;
+
+    // Conditions
+    const condList = document.getElementById("conditionList");
+    condList.innerHTML = "";
+    (data.possible_conditions || []).forEach(cond => {
+      const lhClass = {
+        "common": "lh-common",
+        "possible": "lh-possible",
+        "less likely": "lh-less"
+      }[(cond.likelihood || "").toLowerCase()] || "lh-possible";
+
+      condList.innerHTML += `
+        <div class="condition-item">
+          <div>
+            <div class="condition-name">${escHtml(cond.name)}</div>
+            <div class="condition-desc">${escHtml(cond.description)}</div>
+          </div>
+          <span class="likelihood-badge ${lhClass}">${escHtml(cond.likelihood || "")}</span>
+        </div>`;
+    });
+
+    // Next steps
+    const stepsList = document.getElementById("stepsList");
+    stepsList.innerHTML = "";
+    (data.next_steps || []).forEach((step, i) => {
+      stepsList.innerHTML += `
+        <li>
+          <span class="step-num">${i + 1}</span>
+          <span>${escHtml(step)}</span>
+        </li>`;
+    });
+
+    // Red flags
+    const redFlagsList = document.getElementById("redFlagsList");
+    redFlagsList.innerHTML = "";
+    const flags = data.red_flags || [];
+    document.getElementById("redFlagCard").style.display = flags.length ? "block" : "none";
+    flags.forEach(flag => {
+      redFlagsList.innerHTML += `<li>${escHtml(flag)}</li>`;
+    });
+
+    // Disclaimer
+    document.getElementById("disclaimerText").textContent =
+      data.disclaimer || "This information is for educational purposes only. Always consult a healthcare professional.";
+
+    // Show results section
+    document.getElementById("results").classList.add("show");
+
+    // Smooth scroll to results
+    document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  function setLoading(on) {
+    document.getElementById("loader").classList.toggle("show", on);
+    document.getElementById("checkBtn").disabled = on;
+  }
+
+  function showError(msg) {
+    const box = document.getElementById("errorBox");
+    box.textContent = msg;
+    box.classList.add("show");
+  }
+
+  function hideError() {
+    document.getElementById("errorBox").classList.remove("show");
+  }
+
+  function hideResults() {
+    document.getElementById("results").classList.remove("show");
+  }
+
+  function escHtml(str) {
+    const d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
+  }
+</script>
+</body>
+</html>
