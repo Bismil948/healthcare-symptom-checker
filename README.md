@@ -1,3 +1,5 @@
+## Demo Video
+[Watch here](https://www.loom.com/share/27cc85858e9a4089ae5b0daeb507275f)
 [README.md](https://github.com/user-attachments/files/26421958/README.md)
 [README.md](https://github.com/user-attachments/files/26421958/README.md)
 # 🩺 MediCheck — AI Healthcare Symptom Checker
